@@ -15,11 +15,23 @@ Official PyTorch code repository for the [DeepTime paper](https://proceedings.ml
   
 ## Requirements
 
-Dependencies for this project can be installed by:
+### Container Setup
+
+We recommend using the Docker image provided in the repository. To build the Docker image, run the following command:
 
 ```bash
-pip install -r requirements.txt
+docker build -t deeper-time:latest .
 ```
+
+The Docker image is a debian image based on Python 3.10.3. It includes all the necessary dependencies to run the code.
+
+To run the Docker container, use the following command:
+
+```bash
+docker run --rm -it -v $(pwd):$(pwd) -w $(pwd) deeper-time:latest bash
+```
+
+This will mount the current directory into the Docker container and set the working directory to the current directory. 
 
 ## Quick Start
 
@@ -52,6 +64,8 @@ __Option B__: Directly run the experiments with hyperparameters provided in the 
 
 Finally, results can be viewed on tensorboard by running `tensorboard --logdir storage/experiments/`, or in
 the `storage/experiments/experiment_name/metrics.npy` file.
+
+In the event of a failure or if you would like to re-run the experiments, you can run `make clean` to remove generated files.
 
 ## Main Results
 

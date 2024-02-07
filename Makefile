@@ -11,6 +11,9 @@ build-all: .require-path
 run: .require-command
 	bash -c "`cat ${ROOT}/${command}`"
 
+clean:
+	rm -rf ${ROOT}/storage/experiments/*
+
 .require-config:
 ifndef config
 	$(error config is required)
