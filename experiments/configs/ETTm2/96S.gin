@@ -5,7 +5,7 @@ build.variables_dict = {
 }
 
 instance.model_type = 'deeptime'
-instance.save_vals = False
+instance.save_vals = True
 
 get_optimizer.lr = 1e-3
 get_optimizer.lambda_lr = 1.

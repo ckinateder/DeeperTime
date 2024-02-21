@@ -8,4 +8,5 @@ RUN apt-get update
 RUN apt-get install -qq build-essential
 
 # install dependencies
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt

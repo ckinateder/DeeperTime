@@ -28,7 +28,7 @@ The Docker image is a debian image based on Python 3.10.3. It includes all the n
 To run the Docker container, use the following command:
 
 ```bash
-docker run --rm -it -v $(pwd):$(pwd) -w $(pwd) deeper-time:latest bash
+docker run --rm -it -v $(pwd):$(pwd) -w $(pwd) -p 6006:6006 deeper-time:latest bash
 ```
 
 This will mount the current directory into the Docker container and set the working directory to the current directory. 
@@ -102,9 +102,10 @@ a `.gin` configuration file based on the `build.variables_dict` argument.
    ```
 3. Finally, you can observe the results on tensorboard
    ```bash
-   tensorboard --logdir storage/experiments/
+   tensorboard --bind_all --logdir storage/experiments/
    ``` 
    or view the `storage/experiments/deeptime/experiment_name/metrics.npy` file.
+   **Note**: If you are running the code in a Docker container, you will need to use the `--bind_all` flag. Tensorboard will be available at `http://localhost:6006`.
 
 ## Acknowledgements
 
