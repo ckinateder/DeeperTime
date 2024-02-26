@@ -206,59 +206,63 @@ def train(
     scheduler = get_scheduler(optimizer=optimizer, T_max=epochs)
     training_loss_fn = get_loss_fn(loss_name)
 
-    for epoch in range(epochs):
-        train_loss = []
-        model.train()
-        logging.info(f"Starting epoch {epoch + 1}/{epochs}")
-        num_its = len(train_loader)
-        for it, data in enumerate(train_loader):
-            optimizer.zero_grad()
+    with logging_redirect_tqdm():
+        for epoch in trange(epochs, desc="epochs", leave=False, position=1, ncols=80):
+            train_loss = []
+            model.train()
+            logging.info(f"Starting epoch {epoch + 1}/{epochs}")
+            num_its = len(train_loader)
+            for it, data in enumerate(
+                tqdm(train_loader, desc="sample", leave=False, position=0, ncols=80)
+            ):
+                optimizer.zero_grad()
 
-            x, y, x_time, y_time = map(to_tensor, data)
-            forecast = model(x, x_time, y_time)
+                x, y, x_time, y_time = map(to_tensor, data)
+                forecast = model(x, x_time, y_time)
 
-            if isinstance(forecast, tuple):
-                # for models which require reconstruction + forecast loss
-                loss = training_loss_fn(forecast[0], x) + training_loss_fn(
-                    forecast[1], y
-                )
-            else:
-                loss = training_loss_fn(forecast, y)
-            loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), clip)
-            optimizer.step()
+                if isinstance(forecast, tuple):
+                    # for models which require reconstruction + forecast loss
+                    loss = training_loss_fn(forecast[0], x) + training_loss_fn(
+                        forecast[1], y
+                    )
+                else:
+                    loss = training_loss_fn(forecast, y)
+                loss.backward()
+                nn.utils.clip_grad_norm_(model.parameters(), clip)
+                optimizer.step()
 
-            train_loss.append(loss.item())
+                train_loss.append(loss.item())
 
-            msg = f"epochs: {epoch + 1}/{epochs}, iters: {it + 1}/{num_its} | train loss: {loss.item():.2f}"
-            logging.debug(msg)
-            if (it + 1) % math.floor(num_its / 10) == 0:
-                logging.info(msg)
+                msg = f"epochs: {epoch + 1}/{epochs}, iters: {it + 1}/{num_its} | train loss: {loss.item():.2f}"
+                if (it + 1) % 100 == 0:
+                    logging.info(msg)
+                else:
+                    logging.debug(msg)
 
-        scheduler.step()
+            scheduler.step()
 
-        train_loss = np.average(train_loss)
-        val_loss = validate(model, loader=val_loader, loss_fn=training_loss_fn)
-        test_loss = validate(model, loader=test_loader, loss_fn=training_loss_fn)
+            train_loss = np.average(train_loss)
+            val_loss = validate(model, loader=val_loader, loss_fn=training_loss_fn)
+            test_loss = validate(model, loader=test_loader, loss_fn=training_loss_fn)
 
-        scalars = {
-            "Loss/Train": train_loss,
-            "Loss/Val": val_loss,
-            "Loss/Test": test_loss,
-        }
-        checkpoint(epoch + 1, model, scalars=scalars)
-        msg = (
-            f"Completed epoch {epoch + 1}/{epochs}, "
-            f"total iters: {num_its * (epoch + 1)}"
-            f"| train loss: {train_loss:.2f} "
-            f"| val loss: {val_loss:.2f} "
-            f"| test loss: {test_loss:.2f}"
-        )
-        logging.info(msg)
+            scalars = {
+                "Loss/Train": train_loss,
+                "Loss/Val": val_loss,
+                "Loss/Test": test_loss,
+            }
+            checkpoint(epoch + 1, model, scalars=scalars)
+            msg = (
+                f"Completed epoch {epoch + 1}/{epochs}, "
+                f"total iters: {num_its * (epoch + 1)} "
+                f"| train loss: {train_loss:.2f} "
+                f"| val loss: {val_loss:.2f} "
+                f"| test loss: {test_loss:.2f}"
+            )
+            logging.info(msg)
 
-        if checkpoint.early_stop:
-            logging.info("Early stopping")
-            break
+            if checkpoint.early_stop:
+                logging.info("Early stopping\n")
+                break
 
     if epochs > 0:
         model.load_state_dict(torch.load(checkpoint.model_path))
