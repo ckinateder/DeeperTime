@@ -206,6 +206,7 @@ def train(
     scheduler = get_scheduler(optimizer=optimizer, T_max=epochs)
     training_loss_fn = get_loss_fn(loss_name)
 
+    # training loop
     with logging_redirect_tqdm():
         for epoch in trange(epochs, desc="epochs", leave=False, position=1, ncols=80):
             train_loss = []
@@ -215,20 +216,34 @@ def train(
             for it, data in enumerate(
                 tqdm(train_loader, desc="sample", leave=False, position=0, ncols=80)
             ):
+                # zero gradients
                 optimizer.zero_grad()
 
+                # map np.ndarray to torch.Tensor on default device
+                # batch_size x ... x ...
                 x, y, x_time, y_time = map(to_tensor, data)
+                # print(x.shape, y.shape, x_time.shape, y_time.shape)
+
+                # forward pass of model
                 forecast = model(x, x_time, y_time)
 
+                # inner_loss = training_loss_fn(forecast, y)
+                # model.zero_grad()
+
+                # calculate loss
                 if isinstance(forecast, tuple):
                     # for models which require reconstruction + forecast loss
                     loss = training_loss_fn(forecast[0], x) + training_loss_fn(
                         forecast[1], y
-                    )
+                    )  # this is outer loss
                 else:
-                    loss = training_loss_fn(forecast, y)
-                loss.backward()
-                nn.utils.clip_grad_norm_(model.parameters(), clip)
+                    loss = training_loss_fn(forecast, y)  # outer loss
+
+                # calculate gradients
+                loss.backward()  # backprop AFTER forwarding ridge regressor
+                nn.utils.clip_grad_norm_(model.parameters(), clip)  # gradient clipping
+
+                # Adjust learning weights
                 optimizer.step()
 
                 train_loss.append(loss.item())
