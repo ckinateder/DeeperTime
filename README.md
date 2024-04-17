@@ -82,6 +82,24 @@ benchmark based on MSE.
 Further details of the code repository can be found here. The codebase is structured to generate experiments from
 a `.gin` configuration file based on the `build.variables_dict` argument.
 
+There are two options.
+
+### AIO
+
+Just use the `test.sh` script to run the experiments. The script will build and run the experiments.
+
+```bash
+./test.sh <folder> <file>
+```
+
+For example, the default values are `ETTm2` and `96M.gin`. 
+
+```bash
+./test.sh ETTm2 96M.gin
+```
+
+### Detailed
+
 1. First, build the experiment from a config file. We provide 2 ways to build an experiment.
     1. Build a single config file:
        ```

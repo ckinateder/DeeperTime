@@ -1,0 +1,13 @@
+#! /bin/bash
+
+folder_name=${1:-ETTm2}
+exp_name=${2:-96M}
+
+echo Running $folder_name/$exp_name ...
+echo Removing old experiment...
+rm -rf storage/experiments/$folder_name/$exp_name
+echo Building experiment...
+make build config=experiments/configs/$folder_name/$exp_name.gin
+echo Running experiment...
+python -m experiments.forecast --config_path=storage/experiments/$folder_name/$exp_name/repeat\=0/config.gin run
+echo Done.

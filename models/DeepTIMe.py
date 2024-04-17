@@ -4,7 +4,7 @@
 # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 
 from typing import Optional
-
+from models.modules.meta import MetaModule
 import gin
 import torch
 import torch.nn as nn
@@ -26,7 +26,7 @@ def deeptime(
     return DeepTIMe(datetime_feats, layer_size, inr_layers, n_fourier_feats, scales)
 
 
-class DeepTIMe(nn.Module):
+class DeepTIMe(MetaModule):
     def __init__(
         self,
         datetime_feats: int,

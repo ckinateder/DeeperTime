@@ -105,3 +105,23 @@ class RidgeRegressor(nn.Module):
 
     def reg_coeff(self) -> Tensor:
         return F.softplus(self._lambda)
+
+
+def grad_norm(params_list, grads, adaptive):
+    shared_device = params_list[
+        0
+    ].device  # put everything on the same device, in case of model parallelism
+    l = list(range(len(grads)))
+    norm = torch.norm(
+        torch.stack(
+            [
+                ((torch.abs(params_list[i]) if adaptive else 1.0) * grads[i])
+                .norm(p=2)
+                .to(shared_device)
+                for i in l
+                if grads is not None
+            ]
+        ),
+        p=2,
+    )
+    return norm

@@ -225,10 +225,24 @@ def train(
                 # print(x.shape, y.shape, x_time.shape, y_time.shape)
 
                 # forward pass of model
+                # forecast = w, b from ridge regressor
                 forecast = model(x, x_time, y_time)
+                w = forecast[0]
+                b = forecast[1]
 
-                # inner_loss = training_loss_fn(forecast, y)
-                # model.zero_grad()
+                # WHAT's NEXT?
+                # Change any nn.Module inheritance to MetaModule
+                # that gives the meta_named_parameters method
+
+                # TODO integrate sharpmaml into W
+                # add epsilon_t to w
+                # w -> theta_t -> forecast[0]
+                # L is loss function
+                # D_m in SM is y here
+                epsilon_t = 0
+
+                theta_t = w + epsilon_t
+                # forecast = (theta_t, b)
 
                 # calculate loss
                 if isinstance(forecast, tuple):
