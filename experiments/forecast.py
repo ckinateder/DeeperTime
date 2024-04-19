@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 from os.path import join
 import math
@@ -20,6 +21,8 @@ from utils.checkpoint import Checkpoint
 from utils.ops import default_device, to_tensor
 from utils.losses import get_loss_fn
 from utils.metrics import calc_metrics
+
+from models.modules.meta import MetaModule, grad_norm
 
 from tqdm import trange, tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -206,6 +209,9 @@ def train(
     scheduler = get_scheduler(optimizer=optimizer, T_max=epochs)
     training_loss_fn = get_loss_fn(loss_name)
 
+    alpha = 0.0005
+    adaptive = False
+
     # training loop
     with logging_redirect_tqdm():
         for epoch in trange(epochs, desc="epochs", leave=False, position=1, ncols=80):
@@ -227,22 +233,6 @@ def train(
                 # forward pass of model
                 # forecast = w, b from ridge regressor
                 forecast = model(x, x_time, y_time)
-                w = forecast[0]
-                b = forecast[1]
-
-                # WHAT's NEXT?
-                # Change any nn.Module inheritance to MetaModule
-                # that gives the meta_named_parameters method
-
-                # TODO integrate sharpmaml into W
-                # add epsilon_t to w
-                # w -> theta_t -> forecast[0]
-                # L is loss function
-                # D_m in SM is y here
-                epsilon_t = 0
-
-                theta_t = w + epsilon_t
-                # forecast = (theta_t, b)
 
                 # calculate loss
                 if isinstance(forecast, tuple):
