@@ -209,16 +209,16 @@ def train(
     scheduler = get_scheduler(optimizer=optimizer, T_max=epochs)
     training_loss_fn = get_loss_fn(loss_name)
 
-    alpha = 0.0005
-    adaptive = False
-
     # training loop
     with logging_redirect_tqdm():
+
         for epoch in trange(epochs, desc="epochs", leave=False, position=1, ncols=80):
             train_loss = []
             model.train()
             logging.info(f"Starting epoch {epoch + 1}/{epochs}")
             num_its = len(train_loader)
+            loss = None
+
             for it, data in enumerate(
                 tqdm(train_loader, desc="sample", leave=False, position=0, ncols=80)
             ):
@@ -231,8 +231,8 @@ def train(
                 # print(x.shape, y.shape, x_time.shape, y_time.shape)
 
                 # forward pass of model
-                # forecast = w, b from ridge regressor
-                forecast = model(x, x_time, y_time)
+                # batch_size x HORIZEN_LEN x DATASET_DIM
+                forecast = model(x, x_time, y_time, loss=loss)
 
                 # calculate loss
                 if isinstance(forecast, tuple):
@@ -244,7 +244,9 @@ def train(
                     loss = training_loss_fn(forecast, y)  # outer loss
 
                 # calculate gradients
-                loss.backward()  # backprop AFTER forwarding ridge regressor
+                loss.backward(
+                    retain_graph=True
+                )  # backprop AFTER forwarding ridge regressor
                 nn.utils.clip_grad_norm_(model.parameters(), clip)  # gradient clipping
 
                 # Adjust learning weights

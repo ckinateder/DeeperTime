@@ -22,8 +22,13 @@ def deeptime(
     inr_layers: int,
     n_fourier_feats: int,
     scales: float,
+    alpha: float = 0,
 ):
-    return DeepTIMe(datetime_feats, layer_size, inr_layers, n_fourier_feats, scales)
+    if alpha == 0:
+        print("WARNING: alpha is 0. Did you forget to set it?")
+    return DeepTIMe(
+        datetime_feats, layer_size, inr_layers, n_fourier_feats, scales, alpha
+    )
 
 
 class DeepTIMe(MetaModule):
@@ -34,6 +39,7 @@ class DeepTIMe(MetaModule):
         inr_layers: int,
         n_fourier_feats: int,
         scales: float,
+        alpha: float,
     ):
         super().__init__()
         self.inr = INR(
@@ -43,7 +49,7 @@ class DeepTIMe(MetaModule):
             n_fourier_feats=n_fourier_feats,
             scales=scales,
         )
-        self.adaptive_weights = RidgeRegressor()
+        self.adaptive_weights = RidgeRegressor(alpha=alpha)
 
         self.datetime_feats = datetime_feats
         self.inr_layers = inr_layers
@@ -51,7 +57,9 @@ class DeepTIMe(MetaModule):
         self.n_fourier_feats = n_fourier_feats
         self.scales = scales
 
-    def forward(self, x: Tensor, x_time: Tensor, y_time: Tensor) -> Tensor:
+    def forward(
+        self, x: Tensor, x_time: Tensor, y_time: Tensor, loss: Tensor = None
+    ) -> Tensor:
         """This function is the forward pass of the DeepTIMe model.
         At the end of the of the function, the ridge regressor is called to
         calculate the weights and biases, wich are then used in the forecast
@@ -106,11 +114,13 @@ class DeepTIMe(MetaModule):
         # this is most similar to calling the "gradient_update_parameters" in
         # the torchmeta example here (line 67):
         # https://github.com/tristandeleu/pytorch-meta/blob/master/examples/maml/train.py#L67
-        w, b = self.adaptive_weights(lookback_reprs, x)
+        w, b = self.adaptive_weights(lookback_reprs, x, loss=loss)
 
         # make predictions using the forecast function, which just multiplies
         # the weights by the horizon_reprs and then adds the biases
-        preds = self.forecast(horizon_reprs, w, b)  # classic wx+b
+
+        # batch_size x HORIZEN_LEN x DATASET_DIM
+        preds = self.forecast(horizon_reprs, w, b)
 
         # return the predictions
         return preds

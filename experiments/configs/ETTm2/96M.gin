@@ -25,6 +25,7 @@ deeptime.layer_size = 256
 deeptime.inr_layers = 5
 deeptime.n_fourier_feats = 4096
 deeptime.scales = [0.01, 0.1, 1, 5, 10, 20, 50, 100]
+deeptime.alpha = 0.0005
 
 ForecastDataset.data_path = 'ETT-small/ETTm2.csv'
 ForecastDataset.target = 'OT'
