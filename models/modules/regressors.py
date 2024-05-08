@@ -16,19 +16,17 @@ from models.modules.meta import MetaModule
 
 class RidgeRegressor(MetaModule):
     def __init__(
-        self, lambda_init: Optional[float] = 0.0, alpha: Optional[float] = 0.0005
+        self,
+        lambda_init: Optional[float] = 0.0,
     ):
         super().__init__()
         self._lambda = nn.Parameter(torch.as_tensor(lambda_init, dtype=torch.float))
-        self.alpha = alpha
 
     def forward(
         self,
         reprs: Tensor,
         x: Tensor,
         reg_coeff: Optional[float] = None,
-        alpha: Optional[float] = None,
-        loss: Optional[Tensor] = None,
     ) -> Union[Tensor, Tensor]:
         """Forward pass of the RidgeRegressor module.
 
@@ -43,12 +41,12 @@ class RidgeRegressor(MetaModule):
         # set reg_coeff to the default value if not provided
         if reg_coeff is None:
             reg_coeff = self.reg_coeff()
-        if alpha is None:
-            alpha = self.alpha
 
         # get weights and biases using the representation and input tensor
-        w, b = self.maml_weights(reprs, x, reg_coeff, loss=loss, alpha=alpha)
-        return w, b
+        # w, b = self.get_weights(reprs, x, reg_coeff)
+        # return w, b
+
+        return self.maml_weights(reprs, x, reg_coeff)
 
     def get_weights(
         self, X: Tensor, Y: Tensor, reg_coeff: float
@@ -120,9 +118,7 @@ class RidgeRegressor(MetaModule):
         X: Tensor,
         Y: Tensor,
         reg_coeff: float,
-        loss: float,
-        alpha: float,
-    ) -> Union[Tensor, Tensor]:
+    ) -> Tensor:
         """_summary_
 
         Args:
@@ -166,31 +162,7 @@ class RidgeRegressor(MetaModule):
             A.diagonal(dim1=-2, dim2=-1).add_(reg_coeff)
             weights = torch.bmm(X.mT, torch.linalg.solve(A, Y))
 
-        ### PUT MAML HERE ###
-        # SharpMAML says y = (m + epsilon) * x + b
-        # w is our parameter list
-        # b is our bias list
-        if loss is not None:
-            """
-            grads = torch.autograd.grad(
-                loss, weights, create_graph=True, allow_unused=True
-            )
-            for i in range(len(grads)):
-                weights[i] = torch.pow(weights[i], 2) * grads[i]
-            """
-            e_w = alpha * (weights / torch.norm(weights))  # sharpmaml 8a
-            weights = weights + e_w
-
-        ### END MAML ###
-
-        # split the weights into weights and biases
-        w = weights[:, :-1]
-        b = weights[:, -1:]
-
-        return w, b
-        # w is basically grads = torch.autograd.grad(loss,
-        # params.values(),
-        # create_graph=not first_order)
+        return weights
 
     def reg_coeff(self) -> Tensor:
         return F.softplus(self._lambda)

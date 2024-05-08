@@ -26,6 +26,8 @@ def deeptime(
 ):
     if alpha == 0:
         print("WARNING: alpha is 0. Did you forget to set it?")
+    else:
+        print(f"alpha: {alpha}")
     return DeepTIMe(
         datetime_feats, layer_size, inr_layers, n_fourier_feats, scales, alpha
     )
@@ -49,7 +51,9 @@ class DeepTIMe(MetaModule):
             n_fourier_feats=n_fourier_feats,
             scales=scales,
         )
-        self.adaptive_weights = RidgeRegressor(alpha=alpha)
+        self.adaptive_weights = RidgeRegressor()
+
+        self.alpha = alpha
 
         self.datetime_feats = datetime_feats
         self.inr_layers = inr_layers
@@ -114,7 +118,21 @@ class DeepTIMe(MetaModule):
         # this is most similar to calling the "gradient_update_parameters" in
         # the torchmeta example here (line 67):
         # https://github.com/tristandeleu/pytorch-meta/blob/master/examples/maml/train.py#L67
-        w, b = self.adaptive_weights(lookback_reprs, x, loss=loss)
+        weights = self.adaptive_weights(lookback_reprs, x)
+
+        ### PUT MAML HERE ###
+
+        # SharpMAML says y = (m + epsilon) * x + b
+        # w is our parameter list
+        # b is our bias list
+        if loss is not None:
+            e_w = self.alpha * (weights / torch.norm(weights))  # sharpmaml 8a
+            weights = weights + e_w
+
+        ### END MAML ###
+
+        w = weights[:, :-1]
+        b = weights[:, -1:]
 
         # make predictions using the forecast function, which just multiplies
         # the weights by the horizon_reprs and then adds the biases
